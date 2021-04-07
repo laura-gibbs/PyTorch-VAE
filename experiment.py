@@ -140,12 +140,12 @@ class VAEXperiment(pl.LightningModule):
             dataset = CelebA(root = self.params['data_path'],
                              split = "train",
                              transform=transform,
-                             download=False)
+                             download=True)
         elif self.params['dataset'] == 'mnist':
             dataset = MNIST(root = self.params['data_path'],
-                             split = "train",
+                             train=True,
                              transform=transform,
-                             download=False)
+                             download=True)
         else:
             raise ValueError('Undefined dataset type')
 
@@ -163,7 +163,7 @@ class VAEXperiment(pl.LightningModule):
             self.sample_dataloader =  DataLoader(CelebA(root = self.params['data_path'],
                                                         split = "test",
                                                         transform=transform,
-                                                        download=False),
+                                                        download=True),
                                                  batch_size= 144,
                                                  shuffle = True,
                                                  drop_last=True)
@@ -171,9 +171,9 @@ class VAEXperiment(pl.LightningModule):
         
         elif self.params['dataset'] == 'mnist':
             self.sample_dataloader =  DataLoader(MNIST(root = self.params['data_path'],
-                                                        split = "test",
+                                                        train=False,
                                                         transform=transform,
-                                                        download=False),
+                                                        download=True),
                                                  batch_size= 144,
                                                  shuffle = True,
                                                  drop_last=True)
@@ -195,9 +195,7 @@ class VAEXperiment(pl.LightningModule):
                                             transforms.ToTensor(),
                                             SetRange])
         elif self.params['dataset'] == 'mnist':
-            transform = transforms.Compose([transforms.RandomHorizontalFlip(),
-                                            transforms.CenterCrop(148),
-                                            transforms.Resize(self.params['img_size']),
+            transform = transforms.Compose([transforms.Resize(self.params['img_size']),
                                             transforms.ToTensor(),
                                             SetRange])
         else:
