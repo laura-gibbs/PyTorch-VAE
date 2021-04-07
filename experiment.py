@@ -7,7 +7,7 @@ from utils import data_loader
 import pytorch_lightning as pl
 from torchvision import transforms
 import torchvision.utils as vutils
-from torchvision.datasets import CelebA
+from torchvision.datasets import CelebA, MNIST
 from torch.utils.data import DataLoader
 
 
@@ -141,6 +141,11 @@ class VAEXperiment(pl.LightningModule):
                              split = "train",
                              transform=transform,
                              download=False)
+        elif self.params['dataset'] == 'mnist':
+            dataset = MNIST(root = self.params['data_path'],
+                             split = "train",
+                             transform=transform,
+                             download=False)
         else:
             raise ValueError('Undefined dataset type')
 
@@ -163,6 +168,16 @@ class VAEXperiment(pl.LightningModule):
                                                  shuffle = True,
                                                  drop_last=True)
             self.num_val_imgs = len(self.sample_dataloader)
+        
+        elif self.params['dataset'] == 'mnist':
+            self.sample_dataloader =  DataLoader(MNIST(root = self.params['data_path'],
+                                                        split = "test",
+                                                        transform=transform,
+                                                        download=False),
+                                                 batch_size= 144,
+                                                 shuffle = True,
+                                                 drop_last=True)
+            self.num_val_imgs = len(self.sample_dataloader)
         else:
             raise ValueError('Undefined dataset type')
 
@@ -174,6 +189,12 @@ class VAEXperiment(pl.LightningModule):
         SetScale = transforms.Lambda(lambda X: X/X.sum(0).expand_as(X))
 
         if self.params['dataset'] == 'celeba':
+            transform = transforms.Compose([transforms.RandomHorizontalFlip(),
+                                            transforms.CenterCrop(148),
+                                            transforms.Resize(self.params['img_size']),
+                                            transforms.ToTensor(),
+                                            SetRange])
+        elif self.params['dataset'] == 'mnist':
             transform = transforms.Compose([transforms.RandomHorizontalFlip(),
                                             transforms.CenterCrop(148),
                                             transforms.Resize(self.params['img_size']),
