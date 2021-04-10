@@ -19,6 +19,7 @@ class MSSIMVAE(BaseVAE):
 
         self.latent_dim = latent_dim
         self.in_channels = in_channels
+        n_channels = in_channels
 
         modules = []
         if hidden_dims is None:
@@ -73,7 +74,7 @@ class MSSIMVAE(BaseVAE):
                                                output_padding=1),
                             nn.BatchNorm2d(hidden_dims[-1]),
                             nn.LeakyReLU(),
-                            nn.Conv2d(hidden_dims[-1], out_channels= 3,
+                            nn.Conv2d(hidden_dims[-1], out_channels=n_channels,
                                       kernel_size= 3, padding= 1),
                             nn.Tanh())
 

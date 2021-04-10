@@ -21,6 +21,7 @@ class WAE_MMD(BaseVAE):
         self.reg_weight = reg_weight
         self.kernel_type = kernel_type
         self.z_var = latent_var
+        n_channels = in_channels
 
         modules = []
         if hidden_dims is None:
@@ -74,7 +75,7 @@ class WAE_MMD(BaseVAE):
                                                output_padding=1),
                             nn.BatchNorm2d(hidden_dims[-1]),
                             nn.LeakyReLU(),
-                            nn.Conv2d(hidden_dims[-1], out_channels= 3,
+                            nn.Conv2d(hidden_dims[-1], out_channels=n_channels,
                                       kernel_size= 3, padding= 1),
                             nn.Tanh())
 

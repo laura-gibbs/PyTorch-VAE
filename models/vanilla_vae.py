@@ -16,11 +16,12 @@ class VanillaVAE(BaseVAE):
         super(VanillaVAE, self).__init__()
 
         self.latent_dim = latent_dim
+        n_channels = in_channels
 
         modules = []
         if hidden_dims is None:
-            # hidden_dims = [32, 64, 128, 256, 512]
-            hidden_dims = [32, 64, 128, 256]
+            hidden_dims = [32, 64, 128, 256, 512]
+            # hidden_dims = [32, 64, 128, 256]
 
         # Build Encoder
         for h_dim in hidden_dims:
@@ -71,7 +72,7 @@ class VanillaVAE(BaseVAE):
                                                output_padding=1),
                             nn.BatchNorm2d(hidden_dims[-1]),
                             nn.LeakyReLU(),
-                            nn.Conv2d(hidden_dims[-1], out_channels= 3,
+                            nn.Conv2d(hidden_dims[-1], out_channels=n_channels,
                                       kernel_size= 3, padding= 1),
                             nn.Tanh())
 
@@ -100,7 +101,7 @@ class VanillaVAE(BaseVAE):
         :return: (Tensor) [B x C x H x W]
         """
         result = self.decoder_input(z)
-        result = result.view(-1, 256, 2, 2)
+        result = result.view(-1, 512, 2, 2)
         result = self.decoder(result)
         result = self.final_layer(result)
         return result
@@ -138,12 +139,17 @@ class VanillaVAE(BaseVAE):
         log_var = args[3]
 
         kld_weight = kwargs['M_N'] # Account for the minibatch samples from the dataset
+        # print(recons.size(), input.size())
         recons_loss =F.mse_loss(recons, input)
+        # print(recons.max(), recons.min(), input.max(), input.min())
+        # print(torch.sum(((recons - input) ** 2)) / recons.numel())
 
 
         kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
+        # print(f'{mu.mean()}', f'{log_var.mean()}')
 
-        loss = recons_loss + kld_weight * kld_loss
+        loss = recons_loss + kld_weight * kld_loss / 100
+        # print(recons_loss.item(), kld_weight, kld_loss.item(), loss.item())
         return {'loss': loss, 'Reconstruction_Loss':recons_loss, 'KLD':-kld_loss}
 
     def sample(self,

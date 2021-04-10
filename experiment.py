@@ -7,8 +7,10 @@ from utils import data_loader
 import pytorch_lightning as pl
 from torchvision import transforms
 import torchvision.utils as vutils
-from torchvision.datasets import CelebA, MNIST
+from torchvision.datasets import CelebA, MNIST, ImageFolder
 from torch.utils.data import DataLoader
+import matplotlib.pyplot as plt
+from csdataset import CSDataset
 
 
 class VAEXperiment(pl.LightningModule):
@@ -19,6 +21,10 @@ class VAEXperiment(pl.LightningModule):
         super(VAEXperiment, self).__init__()
 
         self.model = vae_model
+        total_params = sum(p.numel()
+                           for p in self.model.parameters() if p.requires_grad)
+        total_params = total_params/1000000
+        print("Total # parameter: " + str(total_params) + "M")
         self.params = params
         self.curr_device = None
         self.hold_graph = False
@@ -33,10 +39,14 @@ class VAEXperiment(pl.LightningModule):
     def training_step(self, batch, batch_idx, optimizer_idx = 0):
         real_img, labels = batch
         self.curr_device = real_img.device
+        # print(real_img.min(), real_img.max())
 
         results = self.forward(real_img, labels = labels)
+        # print(results[0].min(), results[0].max())
+        # print(torch.mean(torch.sum(((results[0] - real_img) ** 2))))
+
         train_loss = self.model.loss_function(*results,
-                                              M_N = self.params['batch_size']/ self.num_train_imgs,
+                                              M_N = self.params['batch_size']/self.num_train_imgs,
                                               optimizer_idx=optimizer_idx,
                                               batch_idx = batch_idx)
 
@@ -46,11 +56,12 @@ class VAEXperiment(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx, optimizer_idx = 0):
         real_img, labels = batch
+
         self.curr_device = real_img.device
 
         results = self.forward(real_img, labels = labels)
         val_loss = self.model.loss_function(*results,
-                                            M_N = self.params['batch_size']/ self.num_val_imgs,
+                                            M_N = self.num_val_imgs/self.params['batch_size'],
                                             optimizer_idx = optimizer_idx,
                                             batch_idx = batch_idx)
 
@@ -68,6 +79,11 @@ class VAEXperiment(pl.LightningModule):
         test_input = test_input.to(self.curr_device)
         test_label = test_label.to(self.curr_device)
         recons = self.model.generate(test_input, labels = test_label)
+        # fig, ax  = plt.subplots(1,2)
+        # fig.tight_layout()
+        # ax[0].imshow(test_input[0, 0].detach().cpu().data)
+        # ax[1].imshow(recons[0, 0].detach().cpu().data)
+        # plt.show()
         vutils.save_image(recons.data,
                           f"{self.logger.save_dir}{self.logger.name}/version_{self.logger.version}/"
                           f"recons_{self.logger.name}_{self.current_epoch}.png",
@@ -146,10 +162,14 @@ class VAEXperiment(pl.LightningModule):
                              train=True,
                              transform=transform,
                              download=True)
+        elif self.params['dataset'] == 'currents':
+            dataset = CSDataset(root_dir = self.params['data_path'] + '/training/tiles',
+                                                        transform=transform)
         else:
             raise ValueError('Undefined dataset type')
 
         self.num_train_imgs = len(dataset)
+        print(self.num_train_imgs)
         return DataLoader(dataset,
                           batch_size= self.params['batch_size'],
                           shuffle = True,
@@ -178,8 +198,18 @@ class VAEXperiment(pl.LightningModule):
                                                  shuffle = True,
                                                  drop_last=True)
             self.num_val_imgs = len(self.sample_dataloader)
+            
+        elif self.params['dataset'] == 'currents':
+            dataset = CSDataset(root_dir = self.params['data_path'] + '/testing/tiles',
+                                                        transform=transform)
+            self.sample_dataloader =  DataLoader(dataset,
+                                                 batch_size= 144,
+                                                 shuffle = True,
+                                                 drop_last=True)
+            self.num_val_imgs = len(dataset)
         else:
             raise ValueError('Undefined dataset type')
+        print(self.num_val_imgs)
 
         return self.sample_dataloader
 
@@ -198,6 +228,11 @@ class VAEXperiment(pl.LightningModule):
             transform = transforms.Compose([transforms.Resize(self.params['img_size']),
                                             transforms.ToTensor(),
                                             SetRange])
+        elif self.params['dataset'] == 'currents':
+            transform = transforms.Compose([transforms.Resize(self.params['img_size']),
+                                            transforms.ToTensor(),
+                                            # SetRange])
+                                            ])
         else:
             raise ValueError('Undefined dataset type')
         return transform
