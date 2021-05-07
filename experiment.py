@@ -12,6 +12,9 @@ from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 from csdataset import CSDataset
 
+import torch.nn as nn
+import torch.nn.functional as F
+
 
 class VAEXperiment(pl.LightningModule):
 
@@ -84,6 +87,8 @@ class VAEXperiment(pl.LightningModule):
         # ax[0].imshow(test_input[0, 0].detach().cpu().data)
         # ax[1].imshow(recons[0, 0].detach().cpu().data)
         # plt.show()
+        
+        # recons = F.interpolate(recons, (64,64), mode='bilinear')
         vutils.save_image(recons.data,
                           f"{self.logger.save_dir}{self.logger.name}/version_{self.logger.version}/"
                           f"recons_{self.logger.name}_{self.current_epoch}.png",
@@ -100,6 +105,7 @@ class VAEXperiment(pl.LightningModule):
             samples = self.model.sample(144,
                                         self.curr_device,
                                         labels = test_label)
+            # samples = F.interpolate(samples, (64,64), mode='bilinear')
             vutils.save_image(samples.cpu().data,
                               f"{self.logger.save_dir}{self.logger.name}/version_{self.logger.version}/"
                               f"{self.logger.name}_{self.current_epoch}.png",
@@ -163,7 +169,7 @@ class VAEXperiment(pl.LightningModule):
                              transform=transform,
                              download=True)
         elif self.params['dataset'] == 'currents':
-            dataset = CSDataset(root_dir = self.params['data_path'] + '/training/tiles',
+            dataset = CSDataset(root_dir = self.params['data_path'] + '/training/tiles_32_mdt',
                                                         transform=transform)
         else:
             raise ValueError('Undefined dataset type')
@@ -200,7 +206,7 @@ class VAEXperiment(pl.LightningModule):
             self.num_val_imgs = len(self.sample_dataloader)
             
         elif self.params['dataset'] == 'currents':
-            dataset = CSDataset(root_dir = self.params['data_path'] + '/testing/tiles',
+            dataset = CSDataset(root_dir = self.params['data_path'] + '/testing/tiles_32_mdt',
                                                         transform=transform)
             self.sample_dataloader =  DataLoader(dataset,
                                                  batch_size= 144,
@@ -229,7 +235,9 @@ class VAEXperiment(pl.LightningModule):
                                             transforms.ToTensor(),
                                             SetRange])
         elif self.params['dataset'] == 'currents':
-            transform = transforms.Compose([transforms.Resize(self.params['img_size']),
+            transform = transforms.Compose([transforms.RandomHorizontalFlip(),
+                                            transforms.RandomVerticalFlip(),
+                                            transforms.Resize(self.params['img_size']),
                                             transforms.ToTensor(),
                                             # SetRange])
                                             ])

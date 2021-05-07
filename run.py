@@ -1,6 +1,8 @@
 import yaml
 import argparse
 import numpy as np
+import os
+import glob
 
 from models import *
 from experiment import VAEXperiment
@@ -53,3 +55,24 @@ runner = Trainer(default_save_path=f"{tt_logger.save_dir}",
 
 print(f"======= Training {config['model_params']['name']} =======")
 runner.fit(experiment)
+
+# set dir as savedmodels/<modelname>
+save_dir = os.path.join(
+    'savedmodels',
+    f"{config['model_params']['name']}"
+)
+
+# check if dir needs to be created
+if not os.path.isdir(save_dir):
+    os.makedirs(save_dir)
+
+# set name as <modelname><number of models + 1>.pk
+save_name = os.path.join(
+    f"{config['model_params']['name']}{len(glob.glob(os.path.join(save_dir, '*.pt'))) + 1}.pt"
+)
+
+# save model
+torch.save(model.state_dict(), os.path.join(
+    save_dir,
+    save_name
+))
