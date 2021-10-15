@@ -169,7 +169,7 @@ class VAEXperiment(pl.LightningModule):
                              transform=transform,
                              download=True)
         elif self.params['dataset'] == 'currents':
-            dataset = CSDataset(root_dir = self.params['data_path'] + '/training/tiles_32_mdt',
+            dataset = CSDataset(root_dir = self.params['data_path'] + '/training/tiles_32',
                                                         transform=transform)
         else:
             raise ValueError('Undefined dataset type')
@@ -206,7 +206,7 @@ class VAEXperiment(pl.LightningModule):
             self.num_val_imgs = len(self.sample_dataloader)
             
         elif self.params['dataset'] == 'currents':
-            dataset = CSDataset(root_dir = self.params['data_path'] + '/testing/tiles_32_mdt',
+            dataset = CSDataset(root_dir = self.params['data_path'] + '/testing/tiles_32',
                                                         transform=transform)
             self.sample_dataloader =  DataLoader(dataset,
                                                  batch_size= 144,
