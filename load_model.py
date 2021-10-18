@@ -4,6 +4,8 @@ import numpy as np
 import os
 import glob
 import torch
+from torchvision import transforms
+import torch.nn.functional as F
 
 from experiment import VAEXperiment
 from pytorch_lightning import Trainer
@@ -18,7 +20,7 @@ parser.add_argument('--config',  '-c',
                     dest="filename",
                     metavar='FILE',
                     help =  'path to the config file',
-                    default='configs/wae_mmd_rbf.yaml')
+                    default='configs/vae.yaml')
 
 args = parser.parse_args()
 with open(args.filename, 'r') as file:
@@ -30,21 +32,26 @@ with open(args.filename, 'r') as file:
 model = vae_models[config['model_params']['name']](**config['model_params'])
 
 
-path = './savedmodels/WAE_MMD/WAE_MMD2.pt'
+path = './savedmodels/VanillaVAE/VanillaVAE_s64.pt'
 model.load_state_dict(torch.load(path))
 model = model.to('cuda:0')
 model.eval()
 
 batch_size = 144*16
-subdir = 'wae_mmd_rbf/'
+subdir = 'vae1/'
 
 with torch.no_grad():
-    for j in range(611, 1000):# Give it a random variable
+    for j in range(611):# Give it a random variable
         print(f'{j+1}/1000')
         z = torch.randn(batch_size, model.latent_dim)
         z = z.to('cuda:0')
         samples = model.decode(z)
+        samples = F.interpolate(samples, (32,32), mode='bilinear')
         for i in range(batch_size):
+            # samples[i] = samples[i].unsqueeze(1)
+            # print(samples[i].shape)
+            # samples[i] = transforms.Resize(32)(samples[i])
+            # samples[i] = samples[i].squeeze(1)
             im = np.uint8(samples[i].detach().cpu().numpy() * 255)
             im = np.squeeze(im, axis=0)
             im = Image.fromarray(im, mode='L')
